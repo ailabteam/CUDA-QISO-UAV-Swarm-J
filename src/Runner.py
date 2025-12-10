@@ -242,8 +242,28 @@ def visualize_convergence_comparison_3_algos(history_spso, history_ldpso, histor
     plt.close(fig)
     print(f"Saved Figure 1 (Convergence Plot).")
 
+# Thêm hàm này vào Runner.py
+def debug_max_violation(gbest_pos, N_uavs, N_waypoints, config):
+    """ Kiểm tra xem các điểm cuối cùng có vi phạm biên không. """
+    path_np = gbest_pos.get().reshape(N_uavs, N_waypoints, 3)
+    max_bound = config['sim_params']['max_bound'] # 1000.0
+    
+    # Kiểm tra tất cả các điểm trên quỹ đạo
+    max_violation = np.max(path_np) - max_bound
+    
+    # Kiểm tra chỉ các điểm cuối cùng (W_i, M)
+    end_waypoints = path_np[:, -1, :]
+    max_end_violation = np.max(end_waypoints) - max_bound
+    
+    if max_end_violation > 0.00001:
+        print(f"\n[CRITICAL DEBUG] ENDPOINT VIOLATION: Max end value is {np.max(end_waypoints):.8f}")
+    
+    return max_violation
 # Figure 2: Path Visualization (Giữ nguyên)
 def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
+
+    debug_max_violation(gbest_pos, N_uavs, N_waypoints, config)
+
 
     # BẮT BUỘC: Lấy mảng vị trí về CPU và reshape
     path = gbest_pos.get().reshape(N_uavs, N_waypoints, 3)
@@ -261,21 +281,21 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
     # Thiết lập Aspect Ratio (để sửa lỗi hình học 3D)
     bounds = config['sim_params']['dimensions'] # [1000, 1000, 500]
     ax.set_box_aspect((bounds[0], bounds[1], bounds[2]))
-    
+
     # === B. VẼ KHỐI HỘP WIREFRAME (Tham chiếu cho không gian tìm kiếm) ===
-    
+
     # Định nghĩa 8 đỉnh của khối hộp (Cube/Cuboid)
     X, Y, Z = bounds
     v = np.array([[0,0,0], [0,Y,0], [X,Y,0], [X,0,0],
                   [0,0,Z], [0,Y,Z], [X,Y,Z], [X,0,Z]])
-    
+
     # Các mặt của khối hộp (để vẽ wireframe)
-    faces = [[v[0],v[1],v[2],v[3]], [v[4],v[5],v[6],v[7]], 
+    faces = [[v[0],v[1],v[2],v[3]], [v[4],v[5],v[6],v[7]],
              [v[0],v[3],v[7],v[4]], [v[1],v[2],v[6],v[5]],
              [v[0],v[1],v[5],v[4]], [v[3],v[2],v[6],v[7]]]
-    
+
     # Tạo collection (để vẽ wireframe)
-    
+
     ax.add_collection3d(Poly3DCollection(faces, facecolors=(0,0,0,0.05), # Sử dụng màu đen trong suốt
                                          linewidths=1.5, edgecolors='black', alpha=0.15))
 
@@ -316,7 +336,7 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
 
     # Bổ sung: Đảm bảo tỷ lệ khung hình (aspect ratio) là chính xác
     # Scenario 2: X=1000, Y=1000, Z=500. Tỷ lệ là [2, 2, 1]
-    padding = 50 
+    padding = 50
     ax.set_xlim(0 - padding, bounds[0] + padding)
     ax.set_ylim(0 - padding, bounds[1] + padding)
     ax.set_zlim(0 - padding, bounds[2] + padding)
