@@ -320,9 +320,14 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
         is_first_target = False
 
     # Vẽ Đường đi của UAV
+        
     for i in range(N_uavs):
+        # Thiết lập màu đồng nhất (ví dụ: dark grey)
+        # Chỉ tạo legend cho UAV đầu tiên
         ax.plot(path[i, :, 0], path[i, :, 1], path[i, :, 2],
-                linestyle='-', linewidth=1.5, label=f'UAV {i+1}' if i == 0 else None, alpha=0.7)
+                linestyle='-', linewidth=1.5, color='darkslategrey', 
+                label='UAV Trajectories' if i == 0 else None, alpha=0.7)
+
 
         # Điểm Bắt đầu
         start_pos = config['sim_params']['start_pos'][i]
