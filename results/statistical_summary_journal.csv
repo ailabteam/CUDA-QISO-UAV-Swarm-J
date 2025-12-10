@@ -1,0 +1,5 @@
+Scenario,Algorithm,N_runs,Fitness_Mean,Fitness_StdDev,Fitness_Min,Time_Mean,Time_StdDev,N_uavs,N_waypoints
+HPC_Fitness_Evaluation (ms),GPU: 1.4069 ± 0.0439,,CPU: 2.9326 ± 0.0996,,,Speedup: 2.08X,,,
+Scenario_2_Dynamic_Swarm,SPSO,10,25511.3361,1185.6871,23457.7988,2.0796,0.0145,8,15
+Scenario_2_LDP,L-DPSO,10,18685.1096,1026.2609,17434.2246,2.0609,0.0077,8,15
+Scenario_2_CDP,C-DPSO,10,21813.8523,688.6352,20561.3945,1.9495,0.0135,8,15
