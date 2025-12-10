@@ -8,6 +8,8 @@ import os
 import csv
 import random
 import pandas as pd # Thêm pandas để dễ dàng xử lý CSV
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection # Cần thêm import này nếu Matplotlib của bạn cần
+
 
 # Tăng tính ngẫu nhiên của các lần chạy
 random.seed(42)
@@ -246,10 +248,39 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
     # BẮT BUỘC: Lấy mảng vị trí về CPU và reshape
     path = gbest_pos.get().reshape(N_uavs, N_waypoints, 3)
 
+    # === A. DEBUG: Kiểm tra Dữ liệu Vi phạm ===
+    max_val = np.max(path)
+    if max_val > 1000.0001: # Chấp nhận sai số nổi
+        print(f"!!! WARNING: Path max value ({max_val:.4f}) exceeds boundary (1000.0). Check clipping logic.")
+
     # --- Khởi tạo Figure và Axes ---
     fig = plt.figure(figsize=(12, 10))
     ax = fig.add_subplot(111, projection='3d')
     # -----------------------------
+
+    # Thiết lập Aspect Ratio (để sửa lỗi hình học 3D)
+    bounds = config['sim_params']['dimensions'] # [1000, 1000, 500]
+    ax.set_box_aspect((bounds[0], bounds[1], bounds[2]))
+    
+    # === B. VẼ KHỐI HỘP WIREFRAME (Tham chiếu cho không gian tìm kiếm) ===
+    
+    # Định nghĩa 8 đỉnh của khối hộp (Cube/Cuboid)
+    X, Y, Z = bounds
+    v = np.array([[0,0,0], [0,Y,0], [X,Y,0], [X,0,0],
+                  [0,0,Z], [0,Y,Z], [X,Y,Z], [X,0,Z]])
+    
+    # Các mặt của khối hộp (để vẽ wireframe)
+    faces = [[v[0],v[1],v[2],v[3]], [v[4],v[5],v[6],v[7]], 
+             [v[0],v[3],v[7],v[4]], [v[1],v[2],v[6],v[5]],
+             [v[0],v[1],v[5],v[4]], [v[3],v[2],v[6],v[7]]]
+    
+    # Tạo collection (để vẽ wireframe)
+    
+    ax.add_collection3d(Poly3DCollection(faces, facecolors=(0,0,0,0.05), # Sử dụng màu đen trong suốt
+                                         linewidths=1.5, edgecolors='black', alpha=0.15))
+
+
+
 
     # Vẽ Chướng ngại vật Tĩnh
     obs_data = np.array(config['obstacles_data'])
@@ -285,14 +316,7 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
 
     # Bổ sung: Đảm bảo tỷ lệ khung hình (aspect ratio) là chính xác
     # Scenario 2: X=1000, Y=1000, Z=500. Tỷ lệ là [2, 2, 1]
-    bounds = config['sim_params']['dimensions']
-    
-    # Thiết lập tỷ lệ khung hình (Aspect Ratio)
-    # Khắc phục lỗi hình học của Matplotlib 3D
-    ax.set_box_aspect((bounds[0], bounds[1], bounds[2]))
-
-    padding = 50
-    
+    padding = 50 
     ax.set_xlim(0 - padding, bounds[0] + padding)
     ax.set_ylim(0 - padding, bounds[1] + padding)
     ax.set_zlim(0 - padding, bounds[2] + padding)
