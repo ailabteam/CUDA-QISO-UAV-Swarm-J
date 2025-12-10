@@ -1,9 +1,9 @@
 # src/Environment.py - Phiên bản Journal (Hoàn chỉnh)
 
 import cupy as cp
-import numpy as np
+import numpy as np 
 from src.QISO_CUDA_Kernels import static_collision_kernel, dynamic_collision_kernel, calculate_f1_cupy, calculate_f3_cupy, THREADS_PER_BLOCK
-from src.QISO_CUDA_Kernels import static_collision_kernel_cpu, dynamic_collision_kernel_cpu
+from src.QISO_CUDA_Kernels import static_collision_kernel_cpu, dynamic_collision_kernel_cpu 
 import math
 
 # Hình phạt biên cứng (Hard Penalty)
@@ -18,13 +18,13 @@ def calculate_boundary_penalty_cupy(positions, min_bound, max_bound):
     # Tìm các vi phạm (giá trị > 0 nếu vi phạm)
     violations_min = cp.maximum(min_bound - positions, 0)
     violations_max = cp.maximum(positions - max_bound, 0)
-
+    
     # Tổng hợp độ lớn vi phạm trên mỗi hạt (particle)
     total_violation_sum = cp.sum(violations_min + violations_max, axis=1)
-
+    
     # Áp dụng trọng số penalty lớn
     boundary_penalty = BOUNDARY_WEIGHT * total_violation_sum
-
+    
     return boundary_penalty
 
 # Hàm tính penalty biên (Sử dụng NumPy)
@@ -33,7 +33,7 @@ def calculate_boundary_penalty_numpy(positions_np, min_bound, max_bound):
     violations_min = np.maximum(min_bound - positions_np, 0)
     violations_max = np.maximum(positions_np - max_bound, 0)
     total_violation_sum = np.sum(violations_min + violations_max, axis=1)
-
+    
     boundary_penalty = BOUNDARY_WEIGHT * total_violation_sum
     return boundary_penalty
 
@@ -52,7 +52,7 @@ class UAV_Environment:
         self.obstacles_np = np.array(config['obstacles_data'], dtype=np.float32)
 
         self.mission_targets = self.cp.array(config['mission_targets'], dtype=self.cp.float32)
-        self.mission_targets_np = np.array(config['mission_targets'], dtype=np.float32)
+        self.mission_targets_np = np.array(config['mission_targets'], dtype=np.float32) 
 
         self.min_separation = self.params.get('min_separation', 0.0)
 
@@ -70,7 +70,7 @@ class UAV_Environment:
         # 2. F2 (Va chạm Tĩnh & Động)
         collision_penalty_f2 = self.cp.zeros(N_particles, dtype=self.cp.float32)
         penalty_base_value = self.params['weights'][1]
-
+        
         # [Kernel calls for static and dynamic collision...]
         obstacle_count = self.obstacles.shape[0]
         if obstacle_count > 0:
@@ -86,8 +86,8 @@ class UAV_Environment:
             )
 
         # 3. F3 (Nhiệm vụ)
-        task_penalty = self.cp.zeros(N_particles, dtype=self.cp.float32)
-
+        task_penalty = self.cp.zeros(N_particles, dtype=self.cp.float32) 
+        
         # 4. F4 (Ràng buộc Biên - MỚI)
         min_b = self.params['min_bound']
         max_b = self.params['max_bound']
@@ -97,8 +97,7 @@ class UAV_Environment:
         w1, _, w3 = self.params['weights']
         fitness = w1 * distance_cost + collision_penalty_f2 + w3 * task_penalty + f_boundary
 
-        return fitness.get()
-
+        return fitness.get() 
 
     def evaluate_fitness_cpu(self, positions_np):
         """ Đánh giá Fitness sử dụng CPU (NumPy/Numba JIT) """
@@ -154,6 +153,8 @@ class UAV_Environment:
 
         return fitness
 
+
+
         """ Đánh giá Fitness sử dụng CPU (NumPy/Numba JIT) """
 
         N_particles = positions_np.shape[0]
@@ -175,7 +176,7 @@ class UAV_Environment:
             dynamic_collision_kernel_cpu(..., collision_penalty_f2) # Giữ nguyên gọi hàm
 
         # 3. F3 (Nhiệm vụ)
-        task_penalty = np.zeros(N_particles, dtype=np.float32)
+        task_penalty = np.zeros(N_particles, dtype=np.float32) 
 
         # 4. F4 (Ràng buộc Biên - MỚI)
         min_b = self.params['min_bound']

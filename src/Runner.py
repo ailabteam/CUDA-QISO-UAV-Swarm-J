@@ -230,7 +230,7 @@ def visualize_convergence_comparison_3_algos(history_spso, history_ldpso, histor
     ax.plot(history_spso, label='SPSO (Fixed)', color='blue', linewidth=2)
     ax.plot(history_ldpso, label='L-DPSO (Linear Dynamic)', color='green', linewidth=2, linestyle=':')
     ax.plot(history_cdpso, label='C-DPSO (Chaos Dynamic)', color='red', linewidth=2, linestyle='--')
-    ax.set_title(f'Figure 1: Mean Convergence Analysis (N=10) - {scenario_name}')
+    ax.set_title(f'Mean Convergence Analysis (N=10) - {scenario_name}')
     ax.set_xlabel('Iteration')
     ax.set_ylabel('Mean G_Best Fitness')
     ax.legend()
@@ -242,9 +242,9 @@ def visualize_convergence_comparison_3_algos(history_spso, history_ldpso, histor
 
 # Figure 2: Path Visualization (Giữ nguyên)
 def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
-    
+
     # BẮT BUỘC: Lấy mảng vị trí về CPU và reshape
-    path = gbest_pos.get().reshape(N_uavs, N_waypoints, 3) 
+    path = gbest_pos.get().reshape(N_uavs, N_waypoints, 3)
 
     # --- Khởi tạo Figure và Axes ---
     fig = plt.figure(figsize=(12, 10))
@@ -284,14 +284,18 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
 
     # Đặt Ràng buộc Biên (Bounds)
     bounds = config['sim_params']['dimensions']
-    ax.set_xlim(0, bounds[0])
-    ax.set_ylim(0, bounds[1])
-    ax.set_zlim(0, bounds[2])
+
+    # THÊM PADDING NHỎ (ví dụ: 20 đơn vị)
+    padding = 20
+    
+    ax.set_xlim(0 - padding, bounds[0] + padding)
+    ax.set_ylim(0 - padding, bounds[1] + padding)
+    ax.set_zlim(0 - padding, bounds[2] + padding)
 
     ax.set_xlabel('X (m)')
     ax.set_ylabel('Y (m)')
     ax.set_zlabel('Z (m)')
-    ax.set_title(f"Figure 2: {metrics['algorithm']} Optimized Paths - {metrics['scenario']}")
+    ax.set_title(f"{metrics['algorithm']} Optimized Paths - {metrics['scenario']}")
 
     ax.legend(loc='upper right', fontsize='small')
 
@@ -321,7 +325,7 @@ def visualize_time_predictability(stats_spso, stats_ldpso, stats_cdpso, scenario
     for patch, color in zip(bp['boxes'], colors):
         patch.set_facecolor(color)
 
-    ax.set_title(f'Figure 3: Execution Time Predictability (N=10 Runs)')
+    ax.set_title(f'Execution Time Predictability (N=10 Runs)')
     ax.set_ylabel('Total Execution Time (seconds)')
     ax.yaxis.grid(True)
 
@@ -346,7 +350,7 @@ def visualize_chaos_dynamics(W_ldpso, C1_ldpso, C2_ldpso, W_cdpso, C1_cdpso, C2_
     axs[0].plot(iterations, W_ldpso, label='L-DPSO (Linear)', color='green', linestyle=':')
     axs[0].plot(iterations, W_cdpso, label='C-DPSO (Chaos Modulated)', color='red', alpha=0.7)
     axs[0].set_ylabel('Inertia Weight ($W$)')
-    axs[0].set_title('Figure 4: Dynamic Parameter Modulation (Chaos vs Linear)')
+    axs[0].set_title('Dynamic Parameter Modulation (Chaos vs Linear)')
     axs[0].legend()
     axs[0].grid(True)
 
