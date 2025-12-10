@@ -1,4 +1,4 @@
-# src/QISO_Optimizer.py - Phiên bản Journal (Đã sửa lỗi logic core)
+# src/QISO_Optimizer.py - Phiên bản Journal HOÀN CHỈNH
 
 import cupy as cp
 import numpy as np
@@ -16,29 +16,28 @@ class QISO_Optimizer:
         self.max_iter = max_iter
         self.params = params
 
-        # Phân loại thuật toán: SPSO, L-DPSO (Linear Dynamic), C-DPSO (Chaos Dynamic)
         self.algo_type = params.get('algo_type', 'SPSO')
 
-        # Tham số cho Dynamic/Chaos
         self.W_min, self.W_max = 0.4, 0.9
         self.C_min, self.C_max = 0.5, 2.5
-        self.mu = 4.0 # Chaotic control parameter (Logistic Map)
+        self.mu = 4.0 
 
-        # Khởi tạo trạng thái ban đầu của Chaos Map
-        self.chaos_state = 0.707106781
+        self.chaos_state = 0.707106781 
 
-        # Khởi tạo toàn bộ quần thể (Vị trí, Vận tốc, Pbest, Gbest)
+        # Khởi tạo các list lưu trữ lịch sử
+        self.W_history = []
+        self.C1_history = []
+        self.C2_history = []
+
         self._initialize_particles()
-        
-        # Thẩm định fitness ban đầu
         self.initial_fitness_check()
+
 
     def _initialize_particles(self):
         N = self.env.N_uavs
         M = self.env.N_waypoints
-        D = N * M * 3 # Kích thước không gian tìm kiếm
+        D = N * M * 3 
 
-        # 1. Khởi tạo Vị trí (X)
         self.X = self.cp.random.uniform(
             self.env.params['min_bound'],
             self.env.params['max_bound'],
@@ -46,53 +45,45 @@ class QISO_Optimizer:
             dtype=self.cp.float32
         )
 
-        # Ứng dụng ràng buộc vị trí bắt đầu cố định
         start_pos_np = np.array(self.env.params['start_pos']).flatten()
         start_pos_cp = self.cp.asarray(start_pos_np, dtype=self.cp.float32)
 
         for i in range(N):
             start_idx = i * M * 3
-            # Gán 3 chiều đầu tiên (x, y, z) cho mỗi UAV
             self.X[:, start_idx:start_idx+3] = start_pos_cp[i*3 : i*3+3]
 
-        # 2. Khởi tạo Vận tốc (V)
         self.V = self.cp.random.uniform(-0.5, 0.5, size=(self.N_particles, D), dtype=self.cp.float32)
 
-        # 3. Khởi tạo P_best và G_best (Sẽ được cập nhật sau)
         self.P_best_pos = self.X.copy()
         self.P_best_fitness = self.cp.full(self.N_particles, self.cp.inf, dtype=self.cp.float32)
-
-        # G_best (Được cập nhật từ P_best sau khi đánh giá fitness lần đầu)
+        
         self.G_best_position = self.X[0, :].copy()
         self.G_best_fitness = self.cp.array([self.cp.inf], dtype=self.cp.float32)
         
         self.convergence_history = []
         
     def initial_fitness_check(self):
-        """ Tính toán fitness ban đầu và thiết lập Pbest/Gbest lần đầu. """
-        
-        # Đánh giá fitness ban đầu (trên GPU)
-        initial_fitness_np = self.env.evaluate_fitness(self.X) # Trả về NumPy array
-        initial_fitness = self.cp.asarray(initial_fitness_np) # Chuyển lại về CuPy
+        initial_fitness_np = self.env.evaluate_fitness(self.X) 
+        initial_fitness = self.cp.asarray(initial_fitness_np) 
 
         self.P_best_fitness = initial_fitness.copy()
         
-        # Cập nhật G_best từ P_best tốt nhất
         min_idx = self.cp.argmin(initial_fitness)
         self.G_best_fitness[0] = initial_fitness[min_idx]
         self.G_best_position = self.X[min_idx, :].copy()
         
         self.convergence_history.append(float(self.G_best_fitness.get()))
+        
+        # Ghi lại tham số ban đầu (t=0)
+        W, C1, C2 = self._update_dynamic_parameters(0)
 
 
     def _update_dynamic_parameters(self, current_iter):
         t = current_iter
         T_max = self.max_iter
         
-        # (Giữ nguyên logic SPSO/L-DPSO/C-DPSO đã được sửa)
-        
         # 1. Tính toán Chaotic Value (x_t)
-        if self.algo_type == 'C-DPSO':
+        if self.algo_type == 'C-DPSO' and t > 0:
             self.chaos_state = self.mu * self.chaos_state * (1 - self.chaos_state)
             x_t = self.chaos_state
         else:
@@ -125,22 +116,21 @@ class QISO_Optimizer:
         else:
             C1 = self.params['C1']
             C2 = self.params['C2']
+            
+        # Lưu lịch sử tham số (cho Figure 4)
+        self.W_history.append(float(W))
+        self.C1_history.append(float(C1))
+        self.C2_history.append(float(C2))
 
         return W, C1, C2
 
     def _update_pbest_gbest(self, current_fitness):
-        """ Cập nhật Pbest và Gbest dựa trên fitness hiện tại. """
+        # ... (logic giữ nguyên)
         
-        # 1. Cập nhật Pbest
         improved_mask = current_fitness < self.P_best_fitness
-        
-        # Cập nhật vị trí Pbest
         self.P_best_pos[improved_mask] = self.X[improved_mask].copy()
-        
-        # Cập nhật fitness Pbest
         self.P_best_fitness[improved_mask] = current_fitness[improved_mask]
         
-        # 2. Cập nhật Gbest
         min_pbest_fitness = self.P_best_fitness.min()
         
         if min_pbest_fitness < self.G_best_fitness[0]:
@@ -150,30 +140,22 @@ class QISO_Optimizer:
 
 
     def _update_velocity_position(self, W, C1, C2):
-        """ Cập nhật vận tốc và vị trí cho toàn bộ quần thể (vectorized). """
+        # ... (logic giữ nguyên)
         
         r1 = self.cp.random.rand(self.N_particles, self.X.shape[1], dtype=self.cp.float32)
         r2 = self.cp.random.rand(self.N_particles, self.X.shape[1], dtype=self.cp.float32)
-        
-        # Mở rộng Gbest cho toàn bộ quần thể để tính toán
         G_best_expanded = self.cp.tile(self.G_best_position, (self.N_particles, 1))
         
-        # Cập nhật Vận tốc (Equation 5)
         self.V = (W * self.V) + \
                  (C1 * r1 * (self.P_best_pos - self.X)) + \
                  (C2 * r2 * (G_best_expanded - self.X))
         
-        # Áp dụng giới hạn Vận tốc (nếu có, không áp dụng trong code này)
-        
-        # Cập nhật Vị trí (Equation 6)
         self.X = self.X + self.V
         
-        # Áp dụng ràng buộc vị trí (boundary constraints)
         X_min = self.env.params['min_bound']
         X_max = self.env.params['max_bound']
         self.X = self.cp.clip(self.X, X_min, X_max)
         
-        # Tái áp dụng ràng buộc vị trí bắt đầu cố định (Rất quan trọng!)
         N = self.env.N_uavs
         M = self.env.N_waypoints
         start_pos_np = np.array(self.env.params['start_pos']).flatten()
@@ -183,23 +165,20 @@ class QISO_Optimizer:
             start_idx = i * M * 3
             self.X[:, start_idx:start_idx+3] = start_pos_cp[i*3 : i*3+3]
 
+
     def optimize(self):
         
         for t in range(1, self.max_iter + 1):
             
-            # 1. Cập nhật tham số động/cố định
             W, C1, C2 = self._update_dynamic_parameters(t) 
-            
-            # 2. Cập nhật vận tốc và vị trí
             self._update_velocity_position(W, C1, C2)
             
-            # 3. Đánh giá fitness
             current_fitness_np = self.env.evaluate_fitness(self.X)
             current_fitness = self.cp.asarray(current_fitness_np)
             
-            # 4. Cập nhật Pbest và Gbest
             self._update_pbest_gbest(current_fitness)
             
             self.convergence_history.append(float(self.G_best_fitness.get()))
 
-        return self.G_best_position, self.G_best_fitness, self.convergence_history
+        # Trả về cả lịch sử tham số để vẽ Figure 4 (chỉ từ lần chạy cuối cùng)
+        return self.G_best_position, self.G_best_fitness, self.convergence_history, self.W_history, self.C1_history, self.C2_history

@@ -1,0 +1,4 @@
+Algorithm,W_init,W_final,C1_C2_init,C1_C2_final
+SPSO,0.7,0.7,1.5/1.5,1.5/1.5
+L-DPSO,0.9,0.4,2.5/0.5,0.5/2.5
+C-DPSO,Chaos(0.9),Chaos(0.4),Chaos(2.5/0.5),Chaos(0.5/2.5)
