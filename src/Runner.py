@@ -243,21 +243,15 @@ def visualize_convergence_comparison_3_algos(history_spso, history_ldpso, histor
 # Figure 2: Path Visualization (Giữ nguyên)
 def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
     
-    # --- Bổ sung 2 dòng này ---
+    # BẮT BUỘC: Lấy mảng vị trí về CPU và reshape
+    path = gbest_pos.get().reshape(N_uavs, N_waypoints, 3) 
+
+    # --- Khởi tạo Figure và Axes ---
     fig = plt.figure(figsize=(12, 10))
     ax = fig.add_subplot(111, projection='3d')
-    # --------------------------
+    # -----------------------------
 
-    path = gbest_pos.get().reshape(N_uavs, N_waypoints, 3)
-
-
-    # obs_data và mission_targets đã được xác định trước đó (logic cũ)
-
-    # LƯU Ý: Nếu bạn đã xóa logic obs/target khỏi hàm này
-    # Bạn cần đảm bảo logic vẽ chướng ngại vật và mục tiêu được giữ nguyên
-    
-    # [Giả định logic vẽ Path, Obstacles, Targets nằm ở đây]
-    
+    # Vẽ Chướng ngại vật Tĩnh
     obs_data = np.array(config['obstacles_data'])
     is_first_obs = True
     for i in range(obs_data.shape[0]):
@@ -266,6 +260,7 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
                    label='Static Obstacles' if is_first_obs else None)
         is_first_obs = False
 
+    # Vẽ Mục tiêu Nhiệm vụ
     mission_targets = np.array(config['mission_targets'])
     is_first_target = True
     for target in mission_targets:
@@ -273,19 +268,21 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
                    label='Mission Target' if is_first_target else None)
         is_first_target = False
 
+    # Vẽ Đường đi của UAV
     for i in range(N_uavs):
         ax.plot(path[i, :, 0], path[i, :, 1], path[i, :, 2],
                 linestyle='-', linewidth=1.5, label=f'UAV {i+1}' if i == 0 else None, alpha=0.7)
 
+        # Điểm Bắt đầu
         start_pos = config['sim_params']['start_pos'][i]
         ax.scatter(start_pos[0], start_pos[1], start_pos[2],
                    marker='s', color='green', s=70, label='Start Position' if i == 0 else None)
 
+        # Điểm Kết thúc
         ax.scatter(path[i, -1, 0], path[i, -1, 1], path[i, -1, 2],
                    marker='x', color='blue', s=70, label='End Waypoint' if i == 0 else None)
 
-    # ... (Bounding boxes và tiêu đề)
-    
+    # Đặt Ràng buộc Biên (Bounds)
     bounds = config['sim_params']['dimensions']
     ax.set_xlim(0, bounds[0])
     ax.set_ylim(0, bounds[1])
@@ -300,7 +297,7 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
 
     output_filename = f"results/Figure_2_{metrics['algorithm']}_best_path.pdf"
     plt.savefig(output_filename, format='pdf')
-    plt.close(fig) # Đây là dòng gây lỗi nếu fig chưa được định nghĩa
+    plt.close(fig)
     print(f"Saved Figure 2 (Path Visualization).")
 
 
