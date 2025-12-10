@@ -282,15 +282,21 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
         ax.scatter(path[i, -1, 0], path[i, -1, 1], path[i, -1, 2],
                    marker='x', color='blue', s=70, label='End Waypoint' if i == 0 else None)
 
-    # Đặt Ràng buộc Biên (Bounds)
-    bounds = config['sim_params']['dimensions']
 
-    # THÊM PADDING NHỎ (ví dụ: 20 đơn vị)
-    padding = 20
+    # Bổ sung: Đảm bảo tỷ lệ khung hình (aspect ratio) là chính xác
+    # Scenario 2: X=1000, Y=1000, Z=500. Tỷ lệ là [2, 2, 1]
+    bounds = config['sim_params']['dimensions']
+    
+    # Thiết lập tỷ lệ khung hình (Aspect Ratio)
+    # Khắc phục lỗi hình học của Matplotlib 3D
+    ax.set_box_aspect((bounds[0], bounds[1], bounds[2]))
+
+    padding = 50
     
     ax.set_xlim(0 - padding, bounds[0] + padding)
     ax.set_ylim(0 - padding, bounds[1] + padding)
     ax.set_zlim(0 - padding, bounds[2] + padding)
+
 
     ax.set_xlabel('X (m)')
     ax.set_ylabel('Y (m)')
