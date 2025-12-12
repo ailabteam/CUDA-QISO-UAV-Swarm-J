@@ -247,19 +247,20 @@ def debug_max_violation(gbest_pos, N_uavs, N_waypoints, config):
     """ Kiểm tra xem các điểm cuối cùng có vi phạm biên không. """
     path_np = gbest_pos.get().reshape(N_uavs, N_waypoints, 3)
     max_bound = config['sim_params']['max_bound'] # 1000.0
-    
+
     # Kiểm tra tất cả các điểm trên quỹ đạo
     max_violation = np.max(path_np) - max_bound
-    
+
     # Kiểm tra chỉ các điểm cuối cùng (W_i, M)
     end_waypoints = path_np[:, -1, :]
     max_end_violation = np.max(end_waypoints) - max_bound
-    
+
     if max_end_violation > 0.00001:
         print(f"\n[CRITICAL DEBUG] ENDPOINT VIOLATION: Max end value is {np.max(end_waypoints):.8f}")
-    
+
     return max_violation
 # Figure 2: Path Visualization (Giữ nguyên)
+
 def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
 
     debug_max_violation(gbest_pos, N_uavs, N_waypoints, config)
@@ -270,7 +271,7 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
 
     # === A. DEBUG: Kiểm tra Dữ liệu Vi phạm ===
     max_val = np.max(path)
-    if max_val > 1000.0001: # Chấp nhận sai số nổi
+    if max_val > 1000.0001: # Giữ cảnh báo này, giờ nó sẽ kiểm tra đúng
         print(f"!!! WARNING: Path max value ({max_val:.4f}) exceeds boundary (1000.0). Check clipping logic.")
 
     # --- Khởi tạo Figure và Axes ---
@@ -278,11 +279,10 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
     ax = fig.add_subplot(111, projection='3d')
     # -----------------------------
 
-    # Thiết lập Aspect Ratio (để sửa lỗi hình học 3D)
-    bounds = config['sim_params']['dimensions'] # [1000, 1000, 500]
-    ax.set_box_aspect((bounds[0], bounds[1], bounds[2]))
-
-    # === B. VẼ KHỐI HỘP WIREFRAME (Tham chiếu cho không gian tìm kiếm) ===
+    # Lấy giới hạn thực tế [X_max, Y_max, Z_max]
+    bounds = config['sim_params']['dimensions'] 
+    
+    # === B. VẼ KHỐI HỘP WIREFRAME (Giữ nguyên logic vẽ 8 đỉnh) ===
 
     # Định nghĩa 8 đỉnh của khối hộp (Cube/Cuboid)
     X, Y, Z = bounds
@@ -295,12 +295,8 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
              [v[0],v[1],v[5],v[4]], [v[3],v[2],v[6],v[7]]]
 
     # Tạo collection (để vẽ wireframe)
-
-    ax.add_collection3d(Poly3DCollection(faces, facecolors=(0,0,0,0.05), # Sử dụng màu đen trong suốt
+    ax.add_collection3d(Poly3DCollection(faces, facecolors=(0,0,0,0.05), 
                                          linewidths=1.5, edgecolors='black', alpha=0.15))
-
-
-
 
     # Vẽ Chướng ngại vật Tĩnh
     obs_data = np.array(config['obstacles_data'])
@@ -320,14 +316,10 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
         is_first_target = False
 
     # Vẽ Đường đi của UAV
-        
     for i in range(N_uavs):
-        # Thiết lập màu đồng nhất (ví dụ: dark grey)
-        # Chỉ tạo legend cho UAV đầu tiên
         ax.plot(path[i, :, 0], path[i, :, 1], path[i, :, 2],
-                linestyle='-', linewidth=1.5, color='darkslategrey', 
+                linestyle='-', linewidth=1.5, color='darkslategrey',
                 label='UAV Trajectories' if i == 0 else None, alpha=0.7)
-
 
         # Điểm Bắt đầu
         start_pos = config['sim_params']['start_pos'][i]
@@ -339,12 +331,20 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
                    marker='x', color='blue', s=70, label='End Waypoint' if i == 0 else None)
 
 
-    # Bổ sung: Đảm bảo tỷ lệ khung hình (aspect ratio) là chính xác
-    # Scenario 2: X=1000, Y=1000, Z=500. Tỷ lệ là [2, 2, 1]
-    padding = 50
-    ax.set_xlim(0 - padding, bounds[0] + padding)
-    ax.set_ylim(0 - padding, bounds[1] + padding)
-    ax.set_zlim(0 - padding, bounds[2] + padding)
+    # === C. THIẾT LẬP GIỚI HẠN TRỤC CHẶT CHẼ (Đã loại bỏ padding lớn) ===
+    X_max, Y_max, Z_max = bounds[0], bounds[1], bounds[2]
+    X_min, Y_min, Z_min = 0, 0, 0 
+
+    # Sử dụng padding nhỏ (1% của giới hạn) để hiển thị viền khối hộp rõ ràng
+    soft_padding_xy = X_max * 0.01 
+    soft_padding_z = Z_max * 0.01 
+    
+    ax.set_xlim(X_min - soft_padding_xy, X_max + soft_padding_xy)
+    ax.set_ylim(Y_min - soft_padding_xy, Y_max + soft_padding_xy)
+    ax.set_zlim(Z_min - soft_padding_z, Z_max + soft_padding_z)
+    
+    # Thiết lập tỷ lệ box aspect
+    ax.set_box_aspect((X_max, Y_max, Z_max))
 
 
     ax.set_xlabel('X (m)')
@@ -358,8 +358,6 @@ def visualize_results(gbest_pos, N_uavs, N_waypoints, config, metrics):
     plt.savefig(output_filename, format='pdf')
     plt.close(fig)
     print(f"Saved Figure 2 (Path Visualization).")
-
-
 
 # Figure 3: Time Predictability Box Plot (MỚI)
 def visualize_time_predictability(stats_spso, stats_ldpso, stats_cdpso, scenario_name):
