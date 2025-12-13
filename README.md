@@ -1,6 +1,6 @@
-# C-DPSO: Chaos-Accelerated Dynamic Parameter PSO for Predictable and Rapid Multi-UAV Path Planning
+# Optimality vs. Predictability: A Statistical and CUDA-Accelerated Analysis of Dynamic PSO for Real-Time Multi-UAV Path Planning
 
-This repository contains the source code and comprehensive experimental results for the paper titled: "C-DPSO: Chaos-Accelerated Dynamic Parameter PSO for Predictable and Rapid Path Planning in Highly Constrained Multi-UAV Swarms."
+This repository contains the source code and comprehensive experimental results for the paper titled: "Optimality vs. Predictability: A Statistical and CUDA-Accelerated Analysis of Dynamic PSO for Real-Time Multi-UAV Path Planning."
 
 The research focuses on balancing solution quality, execution speed, and critically, temporal predictability ($\sigma$ Time) for decentralized UAV swarm path replanning in dynamic 3D environments.
 
